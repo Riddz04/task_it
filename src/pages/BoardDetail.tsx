@@ -1,13 +1,60 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+  UniqueIdentifier,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { PlusCircle, Settings, ArrowLeft } from 'lucide-react';
 import { useBoardStore } from '../store/boardStore';
 import TaskCard from '../components/TaskCard';
 import CreateColumnModal from '../components/modals/CreateColumnModal';
 import CreateTaskModal from '../components/modals/CreateTaskModal';
 import BoardSettings from '../components/BoardSettings';
-import { Column, ColumnType } from '../types';
+import { Column, ColumnType, Task } from '../types';
+
+// Sortable Task Card Component
+const SortableTaskCard = ({ task, boardId, columnId }: { task: Task; boardId: string; columnId: string }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.75 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="mb-2"
+    >
+      <TaskCard task={task} boardId={boardId} columnId={columnId} />
+    </div>
+  );
+};
 
 const BoardDetail = () => {
   const { boardId } = useParams<{ boardId: string }>();
@@ -18,6 +65,15 @@ const BoardDetail = () => {
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<{ id: string, title: string, type: ColumnType } | null>(null);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const board = boards.find(board => board.id === boardId);
 
@@ -44,32 +100,69 @@ const BoardDetail = () => {
     }
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-    
-    if (!destination) {
-      return;
+  const findTaskById = (taskId: string): { task: Task; columnId: string } | null => {
+    for (const column of board.columns) {
+      const task = column.tasks.find(task => task.id === taskId);
+      if (task) {
+        return { task, columnId: column.id };
+      }
     }
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const taskData = findTaskById(active.id as string);
+    if (taskData) {
+      setActiveTask(taskData.task);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Find the active task and its column
+    const activeTaskData = findTaskById(activeId);
+    if (!activeTaskData) return;
+
+    const { columnId: activeColumnId } = activeTaskData;
+
+    // Check if we're dropping over a column (droppable area)
+    const overColumn = board.columns.find(col => col.id === overId);
     
-    if (source.droppableId === destination.droppableId) {
-      reorderTasks(
-        boardId!,
-        source.droppableId,
-        source.index,
-        destination.index
-      );
+    if (overColumn) {
+      // Dropping over a column
+      if (activeColumnId !== overId) {
+        // Moving to a different column
+        moveTask(boardId!, activeColumnId, overId, activeId);
+      }
     } else {
-      const taskId = board.columns
-        .find(col => col.id === source.droppableId)
-        ?.tasks[source.index]?.id;
-        
-      if (taskId) {
-        moveTask(
-          boardId!,
-          source.droppableId,
-          destination.droppableId,
-          taskId
-        );
+      // Dropping over another task - need to find which column the over task belongs to
+      const overTaskData = findTaskById(overId);
+      if (!overTaskData) return;
+
+      const { columnId: overColumnId } = overTaskData;
+
+      if (activeColumnId === overColumnId) {
+        // Reordering within the same column
+        const column = board.columns.find(col => col.id === activeColumnId);
+        if (!column) return;
+
+        const activeIndex = column.tasks.findIndex(task => task.id === activeId);
+        const overIndex = column.tasks.findIndex(task => task.id === overId);
+
+        if (activeIndex !== overIndex) {
+          reorderTasks(boardId!, activeColumnId, activeIndex, overIndex);
+        }
+      } else {
+        // Moving to a different column
+        moveTask(boardId!, activeColumnId, overColumnId, activeId);
       }
     }
   };
@@ -126,63 +219,72 @@ const BoardDetail = () => {
           </button>
         </div>
       ) : (
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
           <div className="flex overflow-x-auto pb-4 gap-4">
             {board.columns.map(column => (
-              <Droppable key={column.id} droppableId={column.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`flex-shrink-0 w-80 border rounded-lg shadow-sm ${getColumnColor(column.type)}`}
-                  >
-                    <div className="p-3 border-b flex justify-between items-center">
-                      <h3 className="font-medium text-gray-800">{column.title}</h3>
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => openEditColumnModal(column)}
-                          className="p-1 text-gray-500 hover:text-gray-700"
-                        >
-                          <Settings size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-2 min-h-[50vh] max-h-[70vh] overflow-y-auto">
-                      {column.tasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`mb-2 ${snapshot.isDragging ? 'opacity-75' : ''}`}
-                            >
-                              <TaskCard
-                                task={task}
-                                boardId={boardId!}
-                                columnId={column.id}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-
+              <div
+                key={column.id}
+                className={`flex-shrink-0 w-80 border rounded-lg shadow-sm ${getColumnColor(column.type)}`}
+              >
+                <div className="p-3 border-b flex justify-between items-center">
+                  <h3 className="font-medium text-gray-800">{column.title}</h3>
+                  <div className="flex items-center">
                     <button
-                      onClick={() => openTaskModal(column.id)}
-                      className="m-2 p-2 w-full flex items-center justify-center gap-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                      onClick={() => openEditColumnModal(column)}
+                      className="p-1 text-gray-500 hover:text-gray-700"
                     >
-                      <PlusCircle size={16} />
-                      <span>Add Task</span>
+                      <Settings size={16} />
                     </button>
                   </div>
-                )}
-              </Droppable>
+                </div>
+
+                <SortableContext 
+                  items={column.tasks.map(task => task.id)} 
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div 
+                    id={column.id}
+                    className="p-2 min-h-[50vh] max-h-[70vh] overflow-y-auto"
+                  >
+                    {column.tasks.map((task) => (
+                      <SortableTaskCard
+                        key={task.id}
+                        task={task}
+                        boardId={boardId!}
+                        columnId={column.id}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+
+                <button
+                  onClick={() => openTaskModal(column.id)}
+                  className="m-2 p-2 w-full flex items-center justify-center gap-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                >
+                  <PlusCircle size={16} />
+                  <span>Add Task</span>
+                </button>
+              </div>
             ))}
           </div>
-        </DragDropContext>
+
+          <DragOverlay>
+            {activeTask ? (
+              <div className="transform rotate-2">
+                <TaskCard
+                  task={activeTask}
+                  boardId={boardId!}
+                  columnId=""
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       <CreateColumnModal
