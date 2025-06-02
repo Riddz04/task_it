@@ -17,9 +17,9 @@ const TaskCard = ({ task, boardId, columnId }: TaskCardProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const priorityColors = {
-    low: 'bg-green-100 text-green-800',
-    medium: 'bg-amber-100 text-amber-800',
-    high: 'bg-red-100 text-red-800'
+    low: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800',
+    medium: 'bg-gradient-to-r from-amber-100 to-yellow-200 text-yellow-800',
+    high: 'bg-gradient-to-r from-red-100 to-rose-200 text-red-800'
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -38,21 +38,27 @@ const TaskCard = ({ task, boardId, columnId }: TaskCardProps) => {
 
   return (
     <>
-      <div className="bg-white border border-gray-200 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div
+        className="relative bg-white/70 backdrop-blur-md border border-gray-200 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
+        onClick={() => setIsEditModalOpen(true)}
+      >
+        {/* Header with menu */}
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-medium text-gray-800 line-clamp-2">{task.title}</h3>
+          <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 pr-4">
+            {task.title}
+          </h3>
           <div className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowMenu(!showMenu);
+                setShowMenu((prev) => !prev);
               }}
-              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+              className="p-1 hover:bg-gray-100 text-gray-500 rounded-full transition"
             >
               <MoreHorizontal size={16} />
             </button>
             {showMenu && (
-              <div className="absolute right-0 mt-1 w-40 bg-white shadow-lg rounded-md z-10">
+              <div className="absolute right-0 mt-2 w-40 bg-white shadow-xl rounded-lg z-20 border animate-fadeIn">
                 <ul className="py-1 text-sm text-gray-700">
                   <li>
                     <button
@@ -76,28 +82,29 @@ const TaskCard = ({ task, boardId, columnId }: TaskCardProps) => {
           </div>
         </div>
 
+        {/* Description */}
         {task.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
+          <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
         )}
 
-        <div className="flex items-center mb-2">
+        {/* Assigned user */}
+        <div className="flex items-center text-xs text-gray-600 mb-2">
           <User size={14} className="mr-1 text-gray-400" />
-          <span className="text-xs text-gray-600">
-            {task.assignedTo || 'Unassigned'}
-          </span>
+          <span>{task.assignedTo || 'Unassigned'}</span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className={`text-xs px-2 py-1 rounded-full ${priorityColors[task.priority]}`}>
+        {/* Priority and due date */}
+        <div className="flex justify-between items-center">
+          <span
+            className={`text-xs font-medium px-2 py-1 rounded-full ${priorityColors[task.priority]}`}
+          >
             {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
           </span>
 
           {task.dueDate && (
-            <div className="flex items-center">
+            <div className="flex items-center text-xs text-gray-600">
               <Clock size={14} className="mr-1 text-gray-400" />
-              <span className="text-xs text-gray-600">
-                {format(new Date(task.dueDate), 'MMM d')}
-              </span>
+              {format(new Date(task.dueDate), 'MMM d')}
             </div>
           )}
         </div>
