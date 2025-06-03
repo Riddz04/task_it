@@ -1,32 +1,55 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import BoardsView from './pages/BoardsView';
 import BoardDetail from './pages/BoardDetail';
 import NotFound from './pages/NotFound';
+import LandingPage from './pages/LandingPage';
+import { useAuth } from './context/AuthContext';
 
 function App() {
-  return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-100 text-gray-800">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/60 backdrop-blur-md shadow-md">
-        <Header />
-      </div>
+  const { user, loading } = useAuth();
 
-      {/* Main content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-black">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+          <div className="text-xl font-semibold text-white tracking-wide">
+            Loading TaskIt
+            <span className="animate-pulse">...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white overflow-hidden">
+      {user && (
+        <div className="flex-none z-20 bg-black/20 backdrop-blur-xl border-b border-white/10">
+          <Header />
+        </div>
+      )}
+
+      <main className="flex-1 flex flex-col overflow-hidden">
         <Routes>
-          <Route path="/" element={<BoardsView />} />
-          <Route path="/boards/:boardId" element={<BoardDetail />} />
+          <Route path="/login" element={<LandingPage />} />
+          <Route path="/" element={user ? <BoardsView /> : <Navigate to="/login" replace />} />
+          <Route path="/boards/:boardId" element={user ? <BoardDetail /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white/60 backdrop-blur-md shadow-inner py-5">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
-          Made with <span className="text-red-500">❤️</span> by <span className="font-medium text-indigo-600">Riddhi</span>
-        </div>
-      </footer>
+      {user && (
+        <footer className="flex-none bg-black/20 backdrop-blur-xl border-t border-white/10 py-3 text-center text-xs text-gray-400">
+          <div className="flex items-center justify-center space-x-2">
+            <span>Crafted with</span>
+            <span className="text-cyan-400 animate-pulse">⚡</span>
+            <span>by</span>
+            <span className="text-cyan-400 font-semibold">Riddhi</span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
