@@ -2,7 +2,7 @@
 
 **TaskIt** is a modern Kanban-style task management application built with React, TypeScript, Zustand, and `dnd-kit` for smooth drag-and-drop interactions. It allows users to manage boards, columns, and tasks with rich metadata including priority, due dates, and assignees.
 
-🌐 **Live Demo**: [TaskIt](https://task-it-ebon.vercel.app/)
+🌐 **Live Demo**: [TaskIt](https://taskit-kappa.vercel.app)
 
 ---
 
