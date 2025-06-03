@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { loginWithGoogle, logout as firebaseLogout } from "../lib/auth";
-import { auth } from "../firebase"; 
+import { auth } from "../firebase";
 
 interface AuthContextProps {
   user: User | null;
