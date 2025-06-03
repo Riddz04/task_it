@@ -31,13 +31,19 @@ const BoardsView = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="relative p-6 z-10">
+      {/* Background glow elements */}
+      <div className="absolute -top-10 -left-10 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl animate-pulse z-0" />
+      <div className="absolute -bottom-10 -right-10 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse z-0" />
+
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-indigo-700">Your Boards</h1>
+      <div className="relative z-10 flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+          Your Boards
+        </h1>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-700 transition-all duration-200"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
         >
           <PlusCircle size={20} />
           <span>Create Board</span>
@@ -46,30 +52,30 @@ const BoardsView = () => {
 
       {/* Empty State */}
       {boards.length === 0 ? (
-        <div className="bg-white/60 backdrop-blur-md border border-gray-200 rounded-xl shadow-md p-10 text-center">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">No boards yet</h2>
-          <p className="text-gray-600 mb-6">Create your first board to get started with <span className="font-semibold text-indigo-600">TaskIt</span>.</p>
+        <div className="relative bg-white/5 text-white/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl p-10 text-center z-10">
+          <h2 className="text-2xl font-semibold mb-4">No boards yet</h2>
+          <p className="text-gray-400 mb-6">Create your first board to get started with <span className="font-semibold text-cyan-400">TaskIt</span>.</p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-xl transition-all"
           >
             Create a Board
           </button>
         </div>
       ) : (
         // Table View
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white/60 backdrop-blur-md rounded-xl shadow-md border border-gray-200">
+        <div className="relative overflow-x-auto z-10">
+          <table className="min-w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-lg overflow-hidden">
             <thead>
-              <tr className="bg-gray-100 text-left text-gray-700 font-semibold">
-                <th className="py-3 px-6 rounded-tl-xl">Board Name</th>
-                <th className="py-3 px-6">Description</th>
-                <th className="py-3 px-6">Created</th>
-                <th className="py-3 px-6">Tasks</th>
-                <th className="py-3 px-6 rounded-tr-xl">Actions</th>
+              <tr className="text-left text-sm text-gray-300 uppercase tracking-wide">
+                <th className="py-4 px-6 bg-white/5">Board Name</th>
+                <th className="py-4 px-6 bg-white/5">Description</th>
+                <th className="py-4 px-6 bg-white/5">Created</th>
+                <th className="py-4 px-6 bg-white/5">Tasks</th>
+                <th className="py-4 px-6 bg-white/5">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-white/10">
               {boards.map((board) => {
                 const totalTasks = board.columns.reduce(
                   (sum, column) => sum + column.tasks.length,
@@ -79,28 +85,25 @@ const BoardsView = () => {
                 return (
                   <tr
                     key={board.id}
-                    className="hover:bg-indigo-50/20 transition-colors duration-150"
+                    className="hover:bg-white/10 transition-colors"
                   >
-                    <td className="py-4 px-6">
-                      <Link
-                        to={`/boards/${board.id}`}
-                        className="font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                      >
+                    <td className="py-4 px-6 font-semibold text-cyan-400 hover:underline">
+                      <Link to={`/boards/${board.id}`}>
                         {board.title}
                       </Link>
                     </td>
-                    <td className="py-4 px-6 text-gray-600">
-                      {board.description || <span className="italic text-gray-400">No description</span>}
+                    <td className="py-4 px-6 text-gray-400">
+                      {board.description || <span className="italic text-gray-500">No description</span>}
                     </td>
-                    <td className="py-4 px-6 text-gray-600">
+                    <td className="py-4 px-6 text-gray-400">
                       <div className="flex items-center">
-                        <Clock size={16} className="mr-2 text-gray-400" />
+                        <Clock size={16} className="mr-2 text-gray-500" />
                         <span>{formatDistanceToNow(new Date(board.createdAt), { addSuffix: true })}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-gray-600">
+                    <td className="py-4 px-6 text-gray-400">
                       <div className="flex items-center">
-                        <CalendarClock size={16} className="mr-2 text-gray-400" />
+                        <CalendarClock size={16} className="mr-2 text-gray-500" />
                         <span>{totalTasks} task{totalTasks !== 1 ? 's' : ''}</span>
                       </div>
                     </td>
@@ -112,14 +115,14 @@ const BoardsView = () => {
                             title: board.title,
                             description: board.description
                           }, e)}
-                          className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full transition"
+                          className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-full transition"
                           title="Edit board"
                         >
                           <Edit size={16} />
                         </button>
                         <button
                           onClick={(e) => handleDeleteBoard(board.id, e)}
-                          className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition"
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-full transition"
                           title="Delete board"
                         >
                           <Trash2 size={16} />
